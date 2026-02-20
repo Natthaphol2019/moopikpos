@@ -38,6 +38,7 @@ if (!function_exists('staff_layout_start')) {
         $currentPage = basename(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
         $isOrderPage = $currentPage === 'staff_order.php';
         $isRequestPage = $currentPage === 'staff_requests.php';
+        $isTablePage = $currentPage === 'staff_tables.php';
 
         echo '<!DOCTYPE html>';
         echo '<html lang="th">';
@@ -75,6 +76,7 @@ if (!function_exists('staff_layout_start')) {
         echo '<div class="container-fluid px-3 px-md-4 mb-2">';
         echo '<div class="d-flex gap-2 flex-wrap">';
         echo '<a class="btn btn-sm ' . ($isOrderPage ? 'btn-primary' : 'btn-outline-primary') . '" href="' . staff_escape(staff_url('staff_order.php')) . '"><i class="fa-solid fa-cart-plus me-1"></i>รับออเดอร์หน้าร้าน</a>';
+        echo '<a class="btn btn-sm ' . ($isTablePage ? 'btn-primary' : 'btn-outline-primary') . '" href="' . staff_escape(staff_url('staff_tables.php')) . '"><i class="fa-solid fa-table-cells me-1"></i>แผนผังโต๊ะ</a>';
         echo '<a class="btn btn-sm ' . ($isRequestPage ? 'btn-primary' : 'btn-outline-primary') . '" href="' . staff_escape(staff_url('staff_requests.php')) . '"><i class="fa-solid fa-bell-concierge me-1"></i>คำขอลูกค้าออนไลน์</a>';
         echo '</div>';
         echo '</div>';

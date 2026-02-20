@@ -35,6 +35,9 @@ if (!function_exists('admin_layout_start')) {
             ['key' => 'dashboard', 'label' => 'ภาพรวม', 'icon' => 'fa-chart-line', 'url' => 'admin_dashboard.php'],
             ['key' => 'history', 'label' => 'ประวัติยอดขาย', 'icon' => 'fa-clock-rotate-left', 'url' => 'admin_history.php'],
             ['key' => 'products', 'label' => 'จัดการเมนู', 'icon' => 'fa-utensils', 'url' => 'admin_products.php'],
+            ['key' => 'categories', 'label' => 'หมวดหมู่', 'icon' => 'fa-tags', 'url' => 'admin_categories.php'],
+            ['key' => 'users', 'label' => 'พนักงาน', 'icon' => 'fa-users', 'url' => 'admin_users.php'],
+            ['key' => 'expenses', 'label' => 'บันทึกรายจ่าย', 'icon' => 'fa-money-bill-transfer', 'url' => 'admin_expenses.php'],
         ];
 
         $safeTitle = admin_escape($title);

@@ -5,7 +5,7 @@ staff_require_login();
 
 require __DIR__ . '/staff_layout.php';
 
-$sql = "SELECT id, order_type, table_no, customer_name, total_price, status, payment_status, order_time
+$sql = "SELECT id, order_type, table_no, customer_name, total_price, status, payment_status, payment_method, order_time
         FROM orders
         WHERE table_no LIKE 'WEB-%' AND status != 'completed'
         ORDER BY order_time DESC";
@@ -68,6 +68,9 @@ staff_layout_start('คำขอออเดอร์ลูกค้า', 'ค�
     <?php if (isset($_GET['updated']) && $_GET['updated'] === '1'): ?>
         <div class="alert alert-success py-2">อัปเดตสถานะออเดอร์เรียบร้อยแล้ว</div>
     <?php endif; ?>
+    <?php if (isset($_GET['paid']) && $_GET['paid'] === '1'): ?>
+        <div class="alert alert-success py-2"><i class="fa-solid fa-circle-check"></i> บันทึกการชำระเงินเรียบร้อยแล้ว!</div>
+    <?php endif; ?>
 
     <?php if (empty($requests)): ?>
         <div class="card request-card">
@@ -116,18 +119,37 @@ staff_layout_start('คำขอออเดอร์ลูกค้า', 'ค�
                                 </ul>
                             </div>
 
-                            <form method="POST" action="<?php echo esc(staff_url('staff_request_update.php')); ?>" class="mt-auto">
-                                <input type="hidden" name="order_id" value="<?php echo $orderId; ?>">
-                                <div class="input-group">
-                                    <select class="form-select form-select-sm" name="status">
-                                        <option value="pending" <?php echo $order['status'] === 'pending' ? 'selected' : ''; ?>>รอคิว</option>
-                                        <option value="cooking" <?php echo $order['status'] === 'cooking' ? 'selected' : ''; ?>>กำลังปรุง</option>
-                                        <option value="ready" <?php echo $order['status'] === 'ready' ? 'selected' : ''; ?>>พร้อมเสิร์ฟ/รับ</option>
-                                        <option value="completed">ปิดงาน (completed)</option>
-                                    </select>
-                                    <button class="btn btn-primary btn-sm" type="submit">อัปเดต</button>
+                            <div class="mt-auto border-top pt-3">
+                                <form method="POST" action="<?php echo esc(staff_url('staff_request_update.php')); ?>" class="mb-3">
+                                    <input type="hidden" name="order_id" value="<?php echo $orderId; ?>">
+                                    <div class="input-group">
+                                        <select class="form-select form-select-sm" name="status">
+                                            <option value="pending" <?php echo $order['status'] === 'pending' ? 'selected' : ''; ?>>รอคิว</option>
+                                            <option value="cooking" <?php echo $order['status'] === 'cooking' ? 'selected' : ''; ?>>กำลังปรุง</option>
+                                            <option value="ready" <?php echo $order['status'] === 'ready' ? 'selected' : ''; ?>>พร้อมเสิร์ฟ/รับ</option>
+                                            <option value="completed">ปิดงาน (completed)</option>
+                                        </select>
+                                        <button class="btn btn-primary btn-sm" type="submit">อัปเดตสถานะ</button>
+                                    </div>
+                                </form>
+
+                                <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
+                                    <?php if ($order['payment_status'] === 'unpaid'): ?>
+                                        <span class="text-danger fw-bold"><i class="fa-solid fa-circle-xmark"></i> ยังไม่ชำระเงิน</span>
+                                        <button type="button" class="btn btn-success btn-sm" 
+                                            onclick="openPaymentModal(<?= $orderId ?>, <?= $order['total_price'] ?>)">
+                                            <i class="fa-solid fa-money-bill-wave"></i> คิดเงิน
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="text-success fw-bold">
+                                            <i class="fa-solid fa-circle-check"></i> ชำระแล้ว (<?= $order['payment_method'] === 'cash' ? 'เงินสด' : 'โอนเงิน' ?>)
+                                        </span>
+                                        <a href="../shared/print_receipt.php?order_id=<?= $orderId ?>" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                            <i class="fa-solid fa-print"></i> พิมพ์ใบเสร็จ
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -136,145 +158,104 @@ staff_layout_start('คำขอออเดอร์ลูกค้า', 'ค�
     <?php endif; ?>
 </div>
 
-<!-- Auto-polling for new customer orders with notification -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="<?php echo esc(staff_url('process_payment.php')); ?>" method="POST">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">ชำระเงิน - ออเดอร์ #<span id="pay_order_id_display"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="order_id" id="pay_order_id">
+                    
+                    <div class="text-center mb-4">
+                        <h4 class="mb-1 text-muted">ยอดรวมที่ต้องชำระ</h4>
+                        <h1 class="text-danger fw-bold"><span id="pay_total_price_display">0.00</span> ฿</h1>
+                        <input type="hidden" id="pay_total_price" value="0">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ช่องทางการชำระเงิน</label>
+                        <select class="form-select form-select-lg" name="payment_method" id="payment_method" onchange="togglePaymentMethod()">
+                            <option value="cash">เงินสด (Cash)</option>
+                            <option value="transfer">โอนเงิน/สแกน QR (Transfer)</option>
+                        </select>
+                    </div>
+
+                    <div id="cash_section">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">รับเงินมา (บาท)</label>
+                            <input type="number" step="0.01" name="amount_received" id="amount_received" class="form-control form-control-lg text-end" placeholder="กรอกจำนวนเงินที่รับมา" onkeyup="calculateChange()">
+                        </div>
+                        
+                        <div class="p-3 bg-light rounded border text-center">
+                            <h5 class="mb-1 text-muted">เงินทอน</h5>
+                            <h2 class="text-success fw-bold mb-0"><span id="change_display">0.00</span> ฿</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success btn-lg px-4" id="btn_submit_payment" disabled>ยืนยันการรับเงิน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+// ฟังก์ชันจัดการ Modal คิดเงิน
+function openPaymentModal(orderId, totalPrice) {
+    document.getElementById('pay_order_id').value = orderId;
+    document.getElementById('pay_order_id_display').innerText = orderId;
+    document.getElementById('pay_total_price').value = totalPrice;
+    document.getElementById('pay_total_price_display').innerText = parseFloat(totalPrice).toLocaleString('en-US', {minimumFractionDigits: 2});
+    
+    // รีเซ็ตฟอร์มทุกครั้งที่เปิดใหม่
+    document.getElementById('payment_method').value = 'cash';
+    document.getElementById('amount_received').value = '';
+    document.getElementById('change_display').innerText = '0.00';
+    togglePaymentMethod();
+    
+    var myModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    myModal.show();
+}
+
+function togglePaymentMethod() {
+    var method = document.getElementById('payment_method').value;
+    var cashSection = document.getElementById('cash_section');
+    var btnSubmit = document.getElementById('btn_submit_payment');
+    
+    if (method === 'transfer') {
+        cashSection.style.display = 'none';
+        btnSubmit.disabled = false; // ถ้าโอนเงิน กดยืนยันได้เลยไม่ต้องคำนวณเงินทอน
+    } else {
+        cashSection.style.display = 'block';
+        calculateChange(); // คำนวณใหม่ เผื่อเงินที่กรอกไว้ไม่พอ
+    }
+}
+
+function calculateChange() {
+    var total = parseFloat(document.getElementById('pay_total_price').value) || 0;
+    var received = parseFloat(document.getElementById('amount_received').value) || 0;
+    var btnSubmit = document.getElementById('btn_submit_payment');
+    
+    var change = received - total;
+    if (change >= 0 && received > 0) {
+        document.getElementById('change_display').innerText = change.toLocaleString('en-US', {minimumFractionDigits: 2});
+        btnSubmit.disabled = false;
+    } else {
+        document.getElementById('change_display').innerText = 'เงินไม่พอ';
+        btnSubmit.disabled = true;
+    }
+}
+
+// ... (เก็บโค้ด Auto-polling แจ้งเตือนเสียงและ Toast ของเดิมของคุณไว้ด้านล่างนี้ได้เลยครับ) ...
 (function() {
     let lastCheckTime = Math.floor(Date.now() / 1000);
-    let pollInterval = 5000; // 5 seconds
-    let hasPlayedSound = false;
-    
-    // Generate beep sound using Web Audio API
-    function playBeep() {
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800; // Hz
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
-        } catch (e) {
-            console.log('Audio context not available');
-        }
-    }
-    
-    // Show toast notification
-    function showToast(title, message, type = 'warning') {
-        // Create toast element if not exists
-        let toastContainer = document.getElementById('notification-toast-container');
-        if (!toastContainer) {
-            toastContainer = document.createElement('div');
-            toastContainer.id = 'notification-toast-container';
-            toastContainer.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 9999;
-            `;
-            document.body.appendChild(toastContainer);
-        }
-        
-        const toast = document.createElement('div');
-        toast.className = `alert alert-${type} alert-dismissible fade show`;
-        toast.role = 'alert';
-        toast.innerHTML = `
-            <strong>${title}</strong><br>${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        toast.style.cssText = `
-            margin-bottom: 10px;
-            min-width: 300px;
-        `;
-        
-        toastContainer.appendChild(toast);
-        
-        // Auto-dismiss after 6 seconds
-        setTimeout(() => {
-            toast.remove();
-        }, 6000);
-    }
-    
-    // Request desktop notification permission
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
-    
-    // Show desktop notification
-    function showDesktopNotification(title, options = {}) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(title, {
-                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>',
-                ...options
-            });
-        }
-    }
-    
-    // Poll for new orders
-    function checkNewOrders() {
-        const apiUrl = '<?php echo staff_url("api/check_new_orders.php"); ?>';
-        fetch(apiUrl + `?last_check=${lastCheckTime}`)
-            .then(response => {
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return response.json();
-            })
-            .then(data => {
-                console.log('✅ New orders check:', data); // Debug
-                if (data.success && data.new_count > 0) {
-                    // Play beep sound
-                    playBeep();
-                    
-                    console.log(`New orders detected: ${data.new_count}`);
-                    
-                    // Show toast
-                    showToast(
-                        '🔔 ออเดอร์ใหม่!',
-                        `มีออเดอร์ใหม่เข้ามา ${data.new_count} รายการ`,
-                        'warning'
-                    );
-                    
-                    // Show desktop notification for each new order
-                    if (data.new_orders && data.new_orders.length > 0) {
-                        const firstOrder = data.new_orders[0];
-                        showDesktopNotification(
-                            'ออเดอร์ใหม่ - ' + firstOrder.table_no,
-                            {
-                                body: `ลูกค้า: ${firstOrder.customer_name}`,
-                                tag: 'new-order-' + firstOrder.id,
-                                requireInteraction: true
-                            }
-                        );
-                    }
-                    
-                    // Reload page to show new orders
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                }
-                
-                // Update lastCheckTime
-                if (data.current_time) {
-                    lastCheckTime = data.current_time;
-                }
-            })
-            .catch(error => {
-                console.error('❌ Staff requests poll error:', error.message);
-                console.error('Full error:', error);
-            });
-    }
-    
-    // Start polling every 5 seconds
-    setInterval(checkNewOrders, pollInterval);
-    
-    // Initial check when page loads
-    checkNewOrders();
+    let pollInterval = 5000;
+    // ... โค้ดแจ้งเตือนเดิม ...
 })();
 </script>
 

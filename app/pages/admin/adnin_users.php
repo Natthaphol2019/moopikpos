@@ -1,0 +1,158 @@
+<?php
+require __DIR__ . '/../../config/db.php';
+require __DIR__ . '/../../config/admin_auth.php';
+admin_require_login();
+require __DIR__ . '/admin_layout.php';
+
+// ดึงข้อมูลพนักงานทั้งหมด
+$stmt = $pdo->query("SELECT id, username, role, name, created_at FROM users ORDER BY id DESC");
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$headerActions = '<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> เพิ่มพนักงาน</button>';
+admin_layout_start(
+    'จัดการพนักงาน',
+    'users',
+    'จัดการพนักงาน (Users)',
+    'เพิ่ม แก้ไข ลบ และกำหนดสิทธิ์ผู้ใช้งาน',
+    $headerActions
+);
+?>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fa-solid fa-users"></i> จัดการพนักงาน (Users)</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openAddModal()">
+            + เพิ่มพนักงาน
+        </button>
+    </div>
+
+    <?php if (isset($_GET['success'])): ?>
+        <div class="alert alert-success py-2">บันทึกข้อมูลสำเร็จ!</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['deleted'])): ?>
+        <div class="alert alert-warning py-2">ลบบัญชีผู้ใช้เรียบร้อยแล้ว!</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['error']) && $_GET['error'] === 'duplicate'): ?>
+        <div class="alert alert-danger py-2">เกิดข้อผิดพลาด: ชื่อผู้ใช้งาน (Username) นี้มีในระบบแล้ว!</div>
+    <?php endif; ?>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th width="5%">ID</th>
+                        <th>ชื่อ-นามสกุล</th>
+                        <th>ชื่อผู้ใช้งาน (Username)</th>
+                        <th>ตำแหน่ง (Role)</th>
+                        <th width="20%" class="text-center">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($users as $user): ?>
+                    <tr>
+                        <td><?= $user['id'] ?></td>
+                        <td><?= htmlspecialchars($user['name']) ?></td>
+                        <td><?= htmlspecialchars($user['username']) ?></td>
+                        <td>
+                            <?php if($user['role'] === 'admin'): ?>
+                                <span class="badge bg-danger">Admin (ผู้จัดการ)</span>
+                            <?php else: ?>
+                                <span class="badge bg-primary">Staff (พนักงาน)</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-warning" 
+                                onclick="openEditModal(<?= $user['id'] ?>, '<?= htmlspecialchars($user['name']) ?>', '<?= htmlspecialchars($user['username']) ?>', '<?= $user['role'] ?>')">
+                                <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+                            </button>
+                                     <a href="<?= admin_escape(admin_url('user_delete.php')) ?>?id=<?= $user['id'] ?>" 
+                               class="btn btn-sm btn-danger <?= ($user['username'] === 'admin') ? 'disabled' : '' ?>" 
+                               onclick="return confirm('แน่ใจหรือไม่ที่จะลบบัญชีนี้? (จะไม่สามารถเข้าสู่ระบบได้อีก)')">
+                               <i class="fa-solid fa-trash"></i> ลบ
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <small class="text-danger">* หมายเหตุ: บัญชี admin หลักไม่สามารถลบได้</small>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="<?= admin_escape(admin_url('user_save.php')) ?>" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTitle">เพิ่มพนักงาน</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="user_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">ชื่อ-นามสกุล (Name)</label>
+                        <input type="text" name="name" id="user_name" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">ชื่อผู้ใช้งาน (Username) ไว้สำหรับ Login</label>
+                        <input type="text" name="username" id="user_username" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">รหัสผ่าน (Password)</label>
+                        <input type="password" name="password" id="user_password" class="form-control">
+                        <small class="text-muted" id="password_hint">ใส่รหัสผ่านใหม่ (หากแก้ไขแล้วเว้นว่างไว้ รหัสเดิมจะไม่เปลี่ยน)</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">ตำแหน่ง (Role)</label>
+                        <select name="role" id="user_role" class="form-select" required>
+                            <option value="staff">Staff (พนักงานหน้าร้าน)</option>
+                            <option value="admin">Admin (ผู้จัดการ)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAddModal() {
+    document.getElementById('modalTitle').innerText = 'เพิ่มพนักงานใหม่';
+    document.getElementById('user_id').value = '';
+    document.getElementById('user_name').value = '';
+    document.getElementById('user_username').value = '';
+    document.getElementById('user_password').value = '';
+    document.getElementById('user_password').required = true; // บังคับกรอกรหัสถ้าเพิ่มใหม่
+    document.getElementById('user_role').value = 'staff';
+    document.getElementById('password_hint').style.display = 'none';
+    
+    var myModal = new bootstrap.Modal(document.getElementById('userModal'));
+    myModal.show();
+}
+
+function openEditModal(id, name, username, role) {
+    document.getElementById('modalTitle').innerText = 'แก้ไขข้อมูลพนักงาน';
+    document.getElementById('user_id').value = id;
+    document.getElementById('user_name').value = name;
+    document.getElementById('user_username').value = username;
+    document.getElementById('user_password').value = '';
+    document.getElementById('user_password').required = false; // ไม่บังคับกรอกรหัสถ้าแค่แก้ไขชื่อ
+    document.getElementById('user_role').value = role;
+    document.getElementById('password_hint').style.display = 'block';
+    
+    var myModal = new bootstrap.Modal(document.getElementById('userModal'));
+    myModal.show();
+}
+</script>
+
+<?php admin_layout_end(); ?>

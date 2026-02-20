@@ -16,19 +16,24 @@ return [
         '/staff_requests.php' => __DIR__ . '/../pages/staff/staff_requests.php',
         '/staff_login.php' => __DIR__ . '/../pages/staff/staff_login.php',
         '/staff_logout.php' => __DIR__ . '/../pages/staff/staff_logout.php',
+        '/staff_tables.php' => __DIR__ . '/../pages/staff/staff_tables.php',
 
         '/kitchen_queue.php' => __DIR__ . '/../pages/kitchen/kitchen_queue.php',
         '/kitchen_api.php' => __DIR__ . '/../api/kitchen_api.php',
         '/api/check_new_orders.php' => __DIR__ . '/../api/check_new_orders.php',
         '/api/check_customer_orders.php' => __DIR__ . '/../api/check_customer_orders.php',
         '/api/check_ready_orders.php' => __DIR__ . '/../api/check_ready_orders.php',
+        
 
         '/admin_dashboard.php' => __DIR__ . '/../pages/admin/admin_dashboard.php',
         '/admin_login.php' => __DIR__ . '/../pages/admin/admin_login.php',
         '/admin_logout.php' => __DIR__ . '/../pages/admin/admin_logout.php',
         '/admin_history.php' => __DIR__ . '/../pages/admin/admin_history.php',
         '/admin_products.php' => __DIR__ . '/../pages/admin/admin_products.php',
+        '/admin_users.php' => __DIR__ . '/../pages/admin/admin_users.php',
         '/product_form.php' => __DIR__ . '/../pages/admin/product_form.php',
+        '/admin_categories.php' => __DIR__ . '/../pages/admin/admin_categories.php',
+        '/admin_expenses.php' => __DIR__ . '/../pages/admin/admin_expenses.php',
 
         '/product_delete.php' => __DIR__ . '/../actions/admin/product_delete.php',
         '/product_action.php' => __DIR__ . '/../actions/admin/product_action.php',
@@ -36,6 +41,7 @@ return [
 
         '/db.php' => __DIR__ . '/../config/db.php',
         '/(ห้ามลบ)migrate.php' => __DIR__ . '/../../migrate.php',
+        
     ],
 
     'POST' => [
@@ -49,5 +55,13 @@ return [
         '/customer_order_submit.php' => __DIR__ . '/../actions/customer/process_customer_order.php',
         '/product_save.php' => __DIR__ . '/../actions/admin/product_save.php',
         '/kitchen_api.php' => __DIR__ . '/../api/kitchen_api.php',
+        '/process_payment.php' => __DIR__ . '/../pages/staff/process_payment.php',
+        '/expense_save.php' => __DIR__ . '/../pages/admin/expense_save.php',
+        '/expense_delete.php' => __DIR__ . '/../pages/admin/expense_delete.php',
+        '/category_save.php' => __DIR__ . '/../pages/admin/categories_save.php',
+        '/category_delete.php' => __DIR__ . '/../pages/admin/category_delete.php',
+        '/user_save.php' => __DIR__ . '/../pages/admin/user_save.php',
+        '/user_delete.php' => __DIR__ . '/../pages/admin/user_delete.php',
+
     ],
 ];
