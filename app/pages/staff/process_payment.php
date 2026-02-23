@@ -46,9 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ");
         $updateStmt->execute([$payment_method, $amount_received, $change_amount, $order_id]);
 
-        // อัปเดตสถานะโต๊ะให้ว่าง (เฉพาะออเดอร์ที่ไม่ได้ขึ้นต้นด้วย WEB-)
-        // ฟีเจอร์นี้ทำเผื่อไว้ใช้กับระบบโต๊ะหน้าร้านด้วยเลย
-        if (strpos($order['table_no'], 'WEB-') === false) {
+        // อัปเดตสถานะโต๊ะให้ว่าง (เฉพาะออเดอร์ที่มีโต๊ะและไม่ใช่ WEB)
+        if (!empty($order['table_no']) && strpos($order['table_no'], 'WEB-') === false) {
             $freeTable = $pdo->prepare("UPDATE tables SET status = 'available' WHERE table_no = ?");
             $freeTable->execute([$order['table_no']]);
         }

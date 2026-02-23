@@ -4,11 +4,24 @@ require __DIR__ . '/../../config/admin_auth.php';
 staff_require_login();
 
 // รับข้อมูล JSON จาก Input Hidden
-$cart_json = $_POST['cart_data'];
-$order_type = $_POST['order_type'];
-$table_no = $_POST['table_no'];
-$customer_info = $_POST['customer_info'];
+$cart_json = $_POST['cart_data'] ?? '';
+$order_type = $_POST['order_type'] ?? '';
+$table_no = trim((string) ($_POST['table_no'] ?? ''));
+$customer_info = trim((string) ($_POST['customer_info'] ?? ''));
 $staff_user_id = staff_current_user_id();
+
+if (!in_array($order_type, ['dine_in', 'takeaway'], true)) {
+    $order_type = 'dine_in';
+}
+
+if ($order_type === 'dine_in' && $table_no === '') {
+    header('Location: ' . auth_url('staff_order.php?error=missing_table'));
+    exit;
+}
+
+if ($order_type === 'takeaway') {
+    $table_no = null;
+}
 
 // แปลง JSON กลับเป็น Array ของ PHP
 $cart_items = json_decode($cart_json, true);
@@ -69,9 +82,20 @@ try {
 
     // อัปเดตราคารวม
     $pdo->prepare("UPDATE orders SET total_price = ? WHERE id = ?")->execute([$total_price, $order_id]);
-
-    $pdo->commit();
-    header('Location: ' . auth_url('staff_order.php?status=success'));
+    
+    // อัปเดตสถานะโต๊ะทันที (ถ้าเป็น Dine-in)
+    if ($order_type === 'dine_in' && $table_no) {
+        $pdo->prepare("UPDATE tables SET status = 'occupied' WHERE table_no = ?")->execute([$table_no]);
+        $pdo->commit();
+        // Redirect ไปหน้าดู order ของโต๊ะนั้น
+        header('Location: ' . auth_url('staff_requests.php?table=' . urlencode($table_no) . '&created=1'));
+    } else {
+        $pdo->commit();
+        // Redirect ไปหน้าดู order ทั้งหมด (หรือหน้า Order success)
+        // เพื่อให้ flow ต่อเนื่อง พนักงานน่าจะอยากเห็นคิวที่เพิ่งสร้าง
+        header('Location: ' . auth_url('staff_requests.php?created=1')); 
+    }
+    exit;
 
 } catch (Exception $e) {
     $pdo->rollBack();

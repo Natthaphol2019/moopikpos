@@ -6,6 +6,11 @@ return [
         '/web.php' => __DIR__ . '/../pages/public/index.php',
         '/index.php' => __DIR__ . '/../pages/public/index.php',
         '/register.php' => __DIR__ . '/../pages/public/register.php',
+        
+        // PWA Files
+        '/manifest.json' => __DIR__ . '/../../manifest.json',
+        '/sw.js' => __DIR__ . '/../../sw.js',
+        
         '/customer_menu.php' => __DIR__ . '/../pages/customer/customer_menu.php',
         '/customer_login.php' => __DIR__ . '/../pages/customer/customer_login.php',
         '/customer_register.php' => __DIR__ . '/../pages/customer/customer_register.php',
@@ -17,6 +22,10 @@ return [
         '/staff_login.php' => __DIR__ . '/../pages/staff/staff_login.php',
         '/staff_logout.php' => __DIR__ . '/../pages/staff/staff_logout.php',
         '/staff_tables.php' => __DIR__ . '/../pages/staff/staff_tables.php',
+
+        '/chef_login.php' => __DIR__ . '/../pages/chef/chef_login.php',
+        '/chef_logout.php' => __DIR__ . '/../pages/chef/chef_logout.php',
+        '/chef_kitchen.php' => __DIR__ . '/../pages/chef/chef_kitchen.php',
 
         '/kitchen_queue.php' => __DIR__ . '/../pages/kitchen/kitchen_queue.php',
         '/kitchen_api.php' => __DIR__ . '/../api/kitchen_api.php',
@@ -30,7 +39,7 @@ return [
         '/admin_logout.php' => __DIR__ . '/../pages/admin/admin_logout.php',
         '/admin_history.php' => __DIR__ . '/../pages/admin/admin_history.php',
         '/admin_products.php' => __DIR__ . '/../pages/admin/admin_products.php',
-        '/admin_users.php' => __DIR__ . '/../pages/admin/admin_users.php',
+        '/admin_user.php' => __DIR__ . '/../pages/admin/admin_user.php',
         '/product_form.php' => __DIR__ . '/../pages/admin/product_form.php',
         '/admin_categories.php' => __DIR__ . '/../pages/admin/admin_categories.php',
         '/admin_expenses.php' => __DIR__ . '/../pages/admin/admin_expenses.php',
@@ -47,6 +56,7 @@ return [
     'POST' => [
         '/admin_login.php' => __DIR__ . '/../pages/admin/admin_login.php',
         '/staff_login.php' => __DIR__ . '/../pages/staff/staff_login.php',
+        '/chef_login.php' => __DIR__ . '/../pages/chef/chef_login.php',
         '/register.php' => __DIR__ . '/../pages/public/register.php',
         '/customer_login.php' => __DIR__ . '/../pages/customer/customer_login.php',
         '/customer_register.php' => __DIR__ . '/../pages/customer/customer_register.php',

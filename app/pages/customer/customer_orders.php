@@ -82,7 +82,21 @@ function status_color($status)
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MooPik Order">
+    <meta name="theme-color" content="#dc3545">
+    <meta name="description" content="MooPik POS - สถานะออเดอร์">
+    
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="<?php echo auth_url('manifest.json'); ?>">
+    <link rel="apple-touch-icon" href="<?php echo auth_url('app/assets/icons/icon-192x192.png'); ?>">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php echo auth_url('app/assets/icons/icon-192x192.png'); ?>">
+    
     <title>สถานะออเดอร์ของฉัน</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -93,6 +107,7 @@ function status_color($status)
             background: linear-gradient(135deg, #f5f8ff 0%, #d6ebff 100%);
             min-height: 100vh;
             padding: 20px 0;
+            padding-bottom: 90px;
         }
         
         .header-section {
@@ -148,6 +163,33 @@ function status_color($status)
             font-size: 0.85rem;
             color: #6c757d;
         }
+        
+        /* Mobile Bottom Navigation */
+        @media (max-width: 768px) {
+            .header-section { margin-bottom: 15px; padding: 15px 0; }
+            body { padding-bottom: 80px; }
+            .mobile-bottom-nav { display: flex !important; }
+        }
+        .mobile-bottom-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 1050;
+            background: #ffffff; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            padding: 8px 0; padding-bottom: max(8px, env(safe-area-inset-bottom));
+        }
+        .mobile-bottom-nav .nav-container {
+            display: flex; justify-content: space-around; align-items: center; width: 100%;
+        }
+        .mobile-bottom-nav .nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-decoration: none; color: #6b7280; transition: all 0.2s; padding: 6px 12px; border-radius: 8px;
+        }
+        .mobile-bottom-nav .nav-item i { font-size: 20px; margin-bottom: 4px; }
+        .mobile-bottom-nav .nav-item span { font-size: 11px; font-weight: 500; }
+        .mobile-bottom-nav .nav-item:hover, .mobile-bottom-nav .nav-item.active {
+            color: #dc3545; background: rgba(220, 53, 69, 0.1);
+        }
+        .mobile-bottom-nav .nav-item.active i { transform: scale(1.1); }
+    </style>
+</head>
 
         .order-body {
             padding: 20px;
@@ -514,6 +556,39 @@ function status_color($status)
         // Initial check when page loads
         lastUpdateTime = Math.floor(Date.now() / 1000);
     })();
+    </script>
+    
+    <!-- Mobile Bottom Navigation (Customer) -->
+    <nav class="mobile-bottom-nav">
+        <div class="nav-container">
+            <a href="<?php echo auth_url('customer_menu.php'); ?>" class="nav-item">
+                <i class="fa-solid fa-utensils"></i>
+                <span>เมนูอาหาร</span>
+            </a>
+            <a href="#" class="nav-item" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>ตะกร้า</span>
+            </a>
+            <a href="<?php echo auth_url('customer_orders.php'); ?>" class="nav-item active">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>ประวัติ</span>
+            </a>
+            <a href="<?php echo auth_url('customer_logout.php'); ?>" class="nav-item">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>ออกจากระบบ</span>
+            </a>
+        </div>
+    </nav>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("<?php echo auth_url('sw.js'); ?>")
+                    .then(reg => console.log("SW registered:", reg.scope))
+                    .catch(err => console.log("SW registration failed:", err));
+            });
+        }
     </script>
 </body>
 </html>

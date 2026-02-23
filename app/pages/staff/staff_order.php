@@ -5,6 +5,19 @@ staff_require_login();
 
 require __DIR__ . '/staff_layout.php';
 
+$selectedTableNo = '';
+if (isset($_GET['table'])) {
+    $candidateTableNo = trim((string) $_GET['table']);
+    if ($candidateTableNo !== '') {
+        $tableCheckStmt = $pdo->prepare("SELECT table_no FROM tables WHERE table_no = ? LIMIT 1");
+        $tableCheckStmt->execute([$candidateTableNo]);
+        $validTable = $tableCheckStmt->fetchColumn();
+        if ($validTable !== false) {
+            $selectedTableNo = (string) $validTable;
+        }
+    }
+}
+
 // ดึงข้อมูลเหมือนเดิม
 $cats = $pdo->query("SELECT * FROM categories")->fetchAll();
 $products = $pdo->query("SELECT p.*, c.name as cat_name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' ORDER BY p.category_id, p.id")->fetchAll();
@@ -35,6 +48,9 @@ staff_layout_start('สั่งอาหารหน้าร้าน', 'ร�
             <?php endif; ?>
             <?php if (isset($_GET['error']) && $_GET['error'] === 'empty'): ?>
                 <div class="alert alert-danger py-2">ไม่สามารถส่งออเดอร์ว่างได้</div>
+            <?php endif; ?>
+            <?php if (isset($_GET['error']) && $_GET['error'] === 'missing_table'): ?>
+                <div class="alert alert-danger py-2">กรุณาระบุเบอร์โต๊ะสำหรับออเดอร์ทานที่ร้าน</div>
             <?php endif; ?>
 
             <!-- 🔔 Active Orders Status Widget -->
@@ -105,11 +121,24 @@ staff_layout_start('สั่งอาหารหน้าร้าน', 'ร�
                     <input type="hidden" name="cart_data" id="cartDataInput">
                     
                     <div class="mb-2">
-                        <select name="order_type" class="form-select form-select-sm mb-1">
+                        <select name="order_type" id="orderTypeInput" class="form-select form-select-sm mb-1">
                             <option value="dine_in">🍽️ ทานที่ร้าน</option>
                             <option value="takeaway">🥡 กลับบ้าน</option>
                         </select>
-                        <input type="text" name="table_no" class="form-control form-control-sm mb-1" placeholder="เบอร์โต๊ะ">
+                        <div id="tableNoGroup">
+                            <input
+                                type="text"
+                                name="table_no"
+                                id="tableNoInput"
+                                class="form-control form-control-sm mb-1"
+                                placeholder="เบอร์โต๊ะ"
+                                value="<?php echo htmlspecialchars($selectedTableNo, ENT_QUOTES, 'UTF-8'); ?>"
+                                <?php echo $selectedTableNo !== '' ? 'readonly' : ''; ?>
+                            >
+                            <?php if ($selectedTableNo !== ''): ?>
+                                <div class="form-text mt-0 mb-1">เลือกจากผังโต๊ะแล้ว (โต๊ะ <?php echo htmlspecialchars($selectedTableNo, ENT_QUOTES, 'UTF-8'); ?>)</div>
+                            <?php endif; ?>
+                        </div>
                         <input type="text" name="customer_info" class="form-control form-control-sm" placeholder="ชื่อลูกค้า">
                     </div>
 
@@ -211,6 +240,7 @@ staff_layout_start('สั่งอาหารหน้าร้าน', 'ร�
     let currentModalBasePrice = 0;
     let modalInstance;
     let lastReadyCheckTime = 0;
+    const selectedTableNo = <?php echo json_encode($selectedTableNo, JSON_UNESCAPED_UNICODE); ?>;
 
     // ==================== Auto-poll Ready Orders ====================
     function pollReadyOrders() {
@@ -375,6 +405,33 @@ staff_layout_start('สั่งอาหารหน้าร้าน', 'ร�
 
     // ==================== Original Functions ====================
 
+    function syncTableInputByOrderType() {
+        const orderTypeInput = document.getElementById('orderTypeInput');
+        const tableNoInput = document.getElementById('tableNoInput');
+        const tableNoGroup = document.getElementById('tableNoGroup');
+        if (!orderTypeInput || !tableNoInput || !tableNoGroup) return;
+
+        const isDineIn = orderTypeInput.value === 'dine_in';
+        tableNoGroup.style.display = isDineIn ? 'block' : 'none';
+        tableNoInput.required = isDineIn;
+
+        if (isDineIn) {
+            if (selectedTableNo !== '') {
+                tableNoInput.value = selectedTableNo;
+            }
+            if (!tableNoInput.hasAttribute('readonly')) {
+                tableNoInput.disabled = false;
+            }
+            return;
+        }
+
+        tableNoInput.value = '';
+        tableNoInput.required = false;
+    }
+
+    document.getElementById('orderTypeInput')?.addEventListener('change', syncTableInputByOrderType);
+    syncTableInputByOrderType();
+
 
     // 1. เปิด Modal เมื่อกดที่เมนู
     function openOptionModal(product) {
@@ -535,9 +592,20 @@ staff_layout_start('สั่งอาหารหน้าร้าน', 'ร�
 
     // 5. ส่งข้อมูลไป PHP (แปลงเป็น JSON)
     function submitOrder() {
+        const orderTypeInput = document.getElementById('orderTypeInput');
+        const tableNoInput = document.getElementById('tableNoInput');
+
         if(cart.length === 0) {
             alert('กรุณาเลือกรายการอาหารก่อน');
             return;
+        }
+        if (orderTypeInput && orderTypeInput.value === 'dine_in') {
+            const tableNo = tableNoInput ? tableNoInput.value.trim() : '';
+            if (tableNo === '') {
+                alert('กรุณาระบุเบอร์โต๊ะสำหรับออเดอร์ทานที่ร้าน');
+                if (tableNoInput) tableNoInput.focus();
+                return;
+            }
         }
         if(!confirm('ยืนยันการสั่งออเดอร์?')) return;
 

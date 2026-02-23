@@ -5,11 +5,31 @@ staff_require_login();
 
 require __DIR__ . '/staff_layout.php';
 
+$table_filter = $_GET['table'] ?? null;
+
 $sql = "SELECT id, order_type, table_no, customer_name, total_price, status, payment_status, payment_method, order_time
         FROM orders
-        WHERE table_no LIKE 'WEB-%' AND status != 'completed'
-        ORDER BY order_time DESC";
-$requests = $pdo->query($sql)->fetchAll();
+        WHERE status != 'completed'";
+
+$params = [];
+
+if ($table_filter) {
+    $sql .= " AND table_no = ?";
+    $params[] = $table_filter;
+} else {
+    // ถ้าไม่ระบุโต๊ะ ให้แสดงเฉพาะของ WEB (หรือจะปรับให้โชว์ทั้งหมดก็ได้ตามต้องการ)
+    // แต่เดิมคือ show web-only, เพื่อไม่ให้กระทบ flow เดิม ผมจะคง logic เดิมไว้ถ้าไม่เลือกโต๊ะ
+    // หรือถ้าอยากให้เห็นทั้งหมดก็ลบเงื่อนไขนี้ทิ้ง
+    // $sql .= " AND table_no LIKE 'WEB-%'"; <-- อันเก่า
+    // เพื่อให้เห็นภาพรวม ผมจะเปลี่ยนเป็นแสดงทั้งหมดที่ยังไม่เสร็จ (active orders)
+    // หรือจะคงไว้แค่ WEB ก็ได้ แต่นี่คือหน้า "คำขอ"
+}
+
+$sql .= " ORDER BY order_time DESC";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$requests = $stmt->fetchAll();
 
 $itemsByOrder = [];
 if (!empty($requests)) {
@@ -61,10 +81,21 @@ $extraHead = '<style>
 .request-items li:last-child{border-bottom:0;}
 </style>';
 
-staff_layout_start('คำขอออเดอร์ลูกค้า', 'คำขอจากลูกค้าออนไลน์', 'ดูรายการที่ลูกค้าสมาชิกสั่งเข้ามาผ่านเว็บไซต์', $extraHead);
+if ($table_filter) {
+    $pageTitle = "รายการออเดอร์ โต๊ะ " . esc($table_filter);
+    $pageDesc = "รายการอาหารที่สั่งสำหรับโต๊ะ " . esc($table_filter);
+} else {
+    $pageTitle = "รายการออเดอร์ทั้งหมด";
+    $pageDesc = "รวมทุกออเดอร์ (ทานที่ร้าน, กลับบ้าน, เดลิเวอรี่)";
+}
+
+staff_layout_start($pageTitle, $pageTitle, $pageDesc, $extraHead);
 ?>
 
 <div class="container-fluid px-3 px-md-4 pb-4">
+    <?php if (isset($_GET['created']) && $_GET['created'] === '1'): ?>
+        <div class="alert alert-success py-2"><i class="fa-solid fa-circle-check"></i> สร้างออเดอร์ใหม่สำเร็จ!</div>
+    <?php endif; ?>
     <?php if (isset($_GET['updated']) && $_GET['updated'] === '1'): ?>
         <div class="alert alert-success py-2">อัปเดตสถานะออเดอร์เรียบร้อยแล้ว</div>
     <?php endif; ?>
@@ -91,7 +122,11 @@ staff_layout_start('คำขอออเดอร์ลูกค้า', 'ค�
                                 <div>
                                     <h5 class="mb-1">ออเดอร์ #<?php echo $orderId; ?></h5>
                                     <div class="request-meta">
-                                        <?php echo $order['order_type'] === 'delivery' ? 'จัดส่ง' : 'รับที่ร้าน'; ?>
+                                        <?php 
+                                            if ($order['order_type'] === 'delivery') echo '🛵 จัดส่ง (Delivery)';
+                                            elseif ($order['order_type'] === 'takeaway') echo '🥡 กลับบ้าน (Takeaway)';
+                                            else echo '🍽️ ทานที่ร้าน (Dine-in)';
+                                        ?>
                                         • <?php echo esc($order['table_no']); ?>
                                     </div>
                                 </div>

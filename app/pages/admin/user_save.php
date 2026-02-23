@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $checkStmt = $pdo->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
     $checkStmt->execute([$username, $id ?: 0]);
     if ($checkStmt->rowCount() > 0) {
-        header('Location: ' . auth_url('admin_users.php?error=duplicate'));
+        header('Location: ' . auth_url('admin_user.php?error=duplicate'));
         exit();
     }
 
@@ -36,6 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // กลับไปหน้าจัดการพนักงาน
-    header('Location: ' . auth_url('admin_users.php?success=1'));
+    header('Location: ' . auth_url('admin_user.php?success=1'));
     exit();
 }

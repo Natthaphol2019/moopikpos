@@ -20,13 +20,11 @@ $chefUsers = array_values(array_filter($users, static function ($user) {
     return ($user['role'] ?? '') === 'chef';
 }));
 
-$headerActions = '<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> เพิ่มพนักงาน</button>';
 admin_layout_start(
     'จัดการพนักงาน',
     'users',
     'จัดการพนักงาน (Users)',
     'เพิ่ม แก้ไข ลบ และกำหนดสิทธิ์ผู้ใช้งาน',
-    $headerActions
 );
 ?>
 

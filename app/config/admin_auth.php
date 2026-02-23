@@ -196,3 +196,62 @@ if (!function_exists('customer_current_user')) {
         return $_SESSION['customer_user'] ?? null;
     }
 }
+
+// ================ Chef/Kitchen ================
+
+if (!function_exists('chef_is_logged_in')) {
+    function chef_is_logged_in()
+    {
+        auth_start_session();
+        return isset($_SESSION['chef_user']) && is_array($_SESSION['chef_user']);
+    }
+}
+
+if (!function_exists('chef_login_user')) {
+    function chef_login_user(array $user)
+    {
+        auth_start_session();
+        session_regenerate_id(true);
+
+        $_SESSION['chef_user'] = [
+            'id' => $user['id'],
+            'username' => $user['username'],
+            'name' => $user['name'],
+            'role' => $user['role'],
+        ];
+    }
+}
+
+if (!function_exists('chef_logout_user')) {
+    function chef_logout_user()
+    {
+        auth_start_session();
+        unset($_SESSION['chef_user']);
+    }
+}
+
+if (!function_exists('chef_require_login')) {
+    function chef_require_login()
+    {
+        if (!chef_is_logged_in()) {
+            header('Location: ' . auth_url('chef_login.php'));
+            exit;
+        }
+    }
+}
+
+if (!function_exists('chef_current_user_name')) {
+    function chef_current_user_name()
+    {
+        auth_start_session();
+        return $_SESSION['chef_user']['name'] ?? 'เชฟ';
+    }
+}
+
+if (!function_exists('chef_current_user_id')) {
+    function chef_current_user_id()
+    {
+        auth_start_session();
+        return $_SESSION['chef_user']['id'] ?? null;
+    }
+}

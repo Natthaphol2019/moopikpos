@@ -17,5 +17,5 @@ if (isset($_GET['id'])) {
     }
 }
 
-header('Location: ' . auth_url('admin_users.php?deleted=1'));
+header('Location: ' . auth_url('admin_user.php?deleted=1'));
 exit();
